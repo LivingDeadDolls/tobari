@@ -16,7 +16,7 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: "npm run dev -- --port 3100 --db .tobari/e2e.sqlite --no-auth",
+    command: "npm start -- --port 3100 --db .tobari/e2e.sqlite --no-auth",
     wait: {stdout: /Keep this window open/},
     reuseExistingServer: false,
   },

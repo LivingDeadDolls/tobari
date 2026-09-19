@@ -6,6 +6,7 @@ import { networkInterfaces } from "node:os";
 import { isIP } from "node:net";
 import { parseArgs } from "node:util";
 import { openStore } from "./store.mjs";
+import { devVersion, reloadScript } from './dev.mjs';
 
 const { values } = parseArgs({
   options: {
@@ -14,6 +15,7 @@ const { values } = parseArgs({
     db: { type: "string", default: ".tobari/local.sqlite" },
     "token-file": { type: "string" },
     "no-auth": { type: "boolean", default: false },
+    dev: { type: "boolean", default: false },
   },
 });
 const port = Number(values.port),
@@ -73,6 +75,7 @@ async function body(req) {
   }
   return JSON.parse(Buffer.concat(chunks).toString());
 }
+const version = values.dev ? devVersion(assets) : null;
 const server = createServer(async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -91,7 +94,14 @@ const server = createServer(async (req, res) => {
     return json(403, { error: "Forbidden origin" });
   try {
     const path = new URL(req.url, "http://localhost").pathname;
+    if (values.dev && req.method === 'GET' && path === '/__dev/version') return json(200, {version: version()});
+    if (values.dev && req.method === 'GET' && path === '/__dev/reload.js') {
+      res.writeHead(200, {'Content-Type': 'text/javascript; charset=utf-8'}).end(reloadScript);
+      return;
+    }
     if (req.method === "GET" && assets.has(path)) {
+      let content = readFileSync(assets.get(path));
+      if (values.dev && path === '/') content = content.toString().replace('</body>', `<script src="/__dev/reload.js" data-version="${version()}"></script></body>`);
       res
         .writeHead(200, {
           "Content-Type": path.endsWith(".js")
@@ -100,7 +110,7 @@ const server = createServer(async (req, res) => {
               ? "text/css; charset=utf-8"
               : "text/html; charset=utf-8",
         })
-        .end(readFileSync(assets.get(path)));
+        .end(content);
       return;
     }
     if (req.method === "POST" && path === "/api/login") {
@@ -194,6 +204,7 @@ server.listen(port, host, () => {
       `Access key file: ${tokenFile}\nOpen this file locally to sign in or connect a CLI. Do not share it.`,
     );
   console.log("Keep this window open. Ctrl+C to stop.");
+  if (values.dev) console.log('DEV: browser auto-reload enabled; open dialogs defer reload. Server restarts require signing in again.');
   heartbeat = setInterval(() => {
     for (const [key, expiry] of sessions)
       if (expiry < Date.now()) sessions.delete(key);

@@ -252,10 +252,10 @@ test("task validation and old prototype database coexist", () => {
   }
 });
 
-test('Windows bat keeps the server in the foreground and serves HTTP', {skip: process.platform !== 'win32'}, async () => {
+for (const batName of ['start.bat', 'start-dev.bat']) test(`Windows ${batName} keeps the server in the foreground and serves HTTP`, {skip: process.platform !== 'win32'}, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'tobari bat '));
   const port = await availablePort();
-  const bat = fileURLToPath(new URL('../start.bat', import.meta.url));
+  const bat = fileURLToPath(new URL('../' + batName, import.meta.url));
   const command = `""${bat}" --port ${port} --db "${join(dir, 'server.sqlite')}" --token-file "${join(dir, 'key.txt')}""`;
   const child = spawn('cmd.exe', ['/d', '/s', '/c', command], {windowsVerbatimArguments: true});
   let output = '';
