@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning src/server.mjs",
-    "dev": "node --watch --watch-preserve-output --disable-warning=ExperimentalWarning src/server.mjs --dev",
+    "dev": "node --disable-warning=ExperimentalWarning scripts/dev-server.mjs",
     "demo": "node --disable-warning=ExperimentalWarning scripts/demo.mjs",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.mjs",
     "test:ui": "playwright test",

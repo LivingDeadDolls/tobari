@@ -10,12 +10,12 @@ import {devVersion} from '../src/dev.mjs';
 
 test('development watcher detects web changes, restarts backend and keeps error logs visible', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'tobari dev '));
-  for (const name of ['src', 'web']) cpSync(fileURLToPath(new URL('../' + name, import.meta.url)), join(dir, name), {recursive: true});
+  for (const name of ['src', 'web', 'scripts']) cpSync(fileURLToPath(new URL('../' + name, import.meta.url)), join(dir, name), {recursive: true});
   const probe = createServer();
   await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve));
   const port = probe.address().port;
   await new Promise(resolve => probe.close(resolve));
-  const child = spawn(process.execPath, ['--watch', '--watch-preserve-output', '--disable-warning=ExperimentalWarning', join(dir, 'src/server.mjs'), '--dev', '--no-auth', '--port', String(port), '--db', join(dir, 'local.sqlite')]);
+  const child = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', join(dir, 'scripts/dev-server.mjs'), '--no-auth', '--port', String(port), '--db', join(dir, 'local.sqlite')]);
   let output = '';
   child.stdout.on('data', c => {output += c;});
   child.stderr.on('data', c => {output += c;});
@@ -39,11 +39,12 @@ test('development watcher detects web changes, restarts backend and keeps error 
     const changed = await until(async () => {const v = await version(); return v !== first && v;});
     appendFileSync(join(dir, 'src/server.mjs'), '\n/* backend change */\n');
     await until(async () => {const v = await version(); return v !== changed && v;});
-    // Node's native watcher can require manual restart after an entrypoint syntax error.
-    // Check that the error stays visible and the watcher does not close the bat window.
+    const restarted = await version();
     appendFileSync(join(dir, 'src/server.mjs'), '\n/*');
-    await until(() => output.includes('SyntaxError') && output.includes('Waiting for file changes'));
+    await until(() => output.includes('SyntaxError') && output.includes('waiting for source changes'));
     assert.equal(child.exitCode, null, 'watcher must stay alive after a source error');
+    appendFileSync(join(dir, 'src/server.mjs'), ' fixed */\n');
+    await until(async () => (await version()) !== restarted);
   } finally {
     if (child.exitCode === null) {
       if (process.platform === 'win32') {
