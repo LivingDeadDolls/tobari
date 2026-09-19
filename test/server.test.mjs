@@ -251,3 +251,34 @@ test("task validation and old prototype database coexist", () => {
     store.close();
   }
 });
+
+test('Windows bat keeps the server in the foreground and serves HTTP', {skip: process.platform !== 'win32'}, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'tobari bat '));
+  const port = await availablePort();
+  const bat = fileURLToPath(new URL('../start.bat', import.meta.url));
+  const command = `""${bat}" --port ${port} --db "${join(dir, 'server.sqlite')}" --token-file "${join(dir, 'key.txt')}""`;
+  const child = spawn('cmd.exe', ['/d', '/s', '/c', command], {windowsVerbatimArguments: true});
+  let output = '';
+  child.stderr.on('data', chunk => { output += chunk; });
+  try {
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('bat startup timeout: ' + output)), 20000);
+      child.stdout.on('data', chunk => {
+        output += chunk;
+        if (output.includes('Keep this window open')) { clearTimeout(timer); resolve(); }
+      });
+      child.once('error', error => { clearTimeout(timer); reject(error); });
+      child.once('exit', code => { clearTimeout(timer); reject(new Error(`bat exited early (${code}): ${output}`)); });
+    });
+    assert.equal(child.exitCode, null, 'bat must remain running while the server runs');
+    assert.match(output, /RUNNING/);
+    assert.equal((await fetch(`http://127.0.0.1:${port}/`)).status, 200);
+    assert.equal(child.exitCode, null);
+  } finally {
+    if (child.exitCode === null && child.pid) {
+      // Only terminate this test's explicitly identified cmd process and its server child.
+      const cleanup = spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {stdio: 'ignore'});
+      await new Promise(resolve => cleanup.once('exit', resolve));
+    }
+  }
+});
