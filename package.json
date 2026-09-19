@@ -1,0 +1,23 @@
+{
+  "name": "tobari",
+  "private": true,
+  "version": "0.1.0",
+  "bin": {
+    "tobari": "src/cli.mjs"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.mjs",
+    "dev": "node --disable-warning=ExperimentalWarning src/server.mjs",
+    "demo": "node --disable-warning=ExperimentalWarning scripts/demo.mjs",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.mjs",
+    "test:ui": "playwright test",
+    "tobari": "node --disable-warning=ExperimentalWarning src/cli.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

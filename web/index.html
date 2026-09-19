@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tobari — Mission control</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <aside class="rail">
+      <a class="brand" href="/" aria-label="Tobari ホーム">✳</a
+      ><span class="rail-label">TOBARI</span>
+      <div class="rail-line"></div>
+      <a href="#workspace" aria-label="作業の全体像" class="rail-link active"
+        >⌘</a
+      ><a href="#timeline-panel" aria-label="時系列" class="rail-link">≋</a>
+      <div class="rail-bottom">帳</div>
+    </aside>
+    <div class="shell">
+      <header>
+        <div class="breadcrumb">
+          Personal workspace <span>/</span> <strong>Mission control</strong>
+        </div>
+        <div class="header-right">
+          <button id="new-task" class="primary">＋ タスク登録</button>
+          <span id="connection" class="connection">接続中</span
+          ><span id="clock"></span>
+        </div>
+      </header>
+      <main id="workspace">
+        <section class="page-heading">
+          <div>
+            <p class="eyebrow">A QUIETER WAY TO OVERSEE</p>
+            <h1>任せた仕事を、見渡す。</h1>
+            <p class="subheading">
+              到達点、分担、次の判断。セッションを開き直す前に。
+            </p>
+          </div>
+          <div class="mode-switch" aria-label="データの表示元">
+            <button id="real-mode" aria-pressed="true" class="selected">
+              実データ</button
+            ><button id="demo-mode" aria-pressed="false">動作デモ ↗</button>
+          </div>
+        </section>
+        <section id="replay" class="replay" hidden>
+          <span
+            ><strong>DEMO REPLAY</strong>
+            架空の4タスクで、分担・判断待ち・完了の変化を再生</span
+          ><button id="play">一時停止</button><label for="scrub">経過</label
+          ><input
+            id="scrub"
+            type="range"
+            min="0"
+            max="120"
+            value="45"
+            aria-label="デモの再生位置"
+          /><output id="replay-time">00:45 / 02:00</output>
+        </section>
+        <section id="metrics" class="metrics" aria-label="作業の概要"></section>
+        <button id="attention" class="attention-strip" hidden></button>
+        <div class="dashboard">
+          <section class="task-panel panel">
+            <div class="panel-heading">
+              <h2>タスク</h2>
+              <span id="task-count" class="counter">0</span>
+            </div>
+            <label class="search"
+              ><span>⌕</span
+              ><input
+                id="search"
+                placeholder="タスクを検索"
+                aria-label="タスクを検索"
+            /></label>
+            <div class="filters" aria-label="状態で絞り込み">
+              <button data-filter="all" class="selected" aria-pressed="true">
+                すべて</button
+              ><button data-filter="attention" aria-pressed="false">
+                要対応</button
+              ><button data-filter="in_progress" aria-pressed="false">
+                進行中</button
+              ><button data-filter="completed" aria-pressed="false">
+                完了
+              </button>
+            </div>
+            <div id="tasks" class="task-list"></div>
+            <div class="panel-note">✦ タスクを選ぶと、分担と結果を表示</div>
+          </section>
+          <section class="graph-panel panel">
+            <div class="panel-heading">
+              <h2>作業のつながり <span class="micro">CONSTELLATION</span></h2>
+              <span id="graph-meta" class="muted"></span>
+            </div>
+            <div id="graph" class="graph"></div>
+            <div class="graph-legend">
+              <span><i class="key blue"></i>進行中</span
+              ><span><i class="key amber"></i>判断待ち</span
+              ><span><i class="key green"></i>完了報告</span
+              ><span><i class="key gray"></i>未報告・未観測</span>
+            </div>
+            <div id="graph-caption" class="panel-note"></div>
+          </section>
+          <aside
+            id="detail"
+            class="detail-panel panel"
+            aria-label="結果と判断材料"
+          ></aside>
+          <section id="timeline-panel" class="timeline-panel panel">
+            <div class="panel-heading">
+              <h2>
+                実行タイムライン <span class="micro">OBSERVED ACTIVITY</span>
+              </h2>
+              <span id="timeline-range" class="muted"></span>
+            </div>
+            <div id="timeline"></div>
+            <div class="panel-note">
+              区間はhookの観測に基づきます。色のない区間は未観測。LLMの計算時間ではありません。
+            </div>
+          </section>
+          <section class="feed-panel panel">
+            <div class="panel-heading">
+              <h2>最近の変化</h2>
+              <span id="feed-meta" class="muted"></span>
+            </div>
+            <div id="feed" class="feed"></div>
+          </section>
+        </div>
+        <footer>
+          <span id="source-note">LOCAL WORKSPACE · ローカル記録を自動更新</span
+          ><span>静かな夜空に、仕事の輪郭を。</span>
+        </footer>
+      </main>
+    </div>
+    <div
+      id="announcement"
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+    ></div>
+    <dialog id="login-dialog" aria-labelledby="login-heading">
+      <form id="login-form">
+        <p class="eyebrow">YOUR LOCAL WORKSPACE</p>
+        <h2 id="login-heading">Tobari に接続</h2>
+        <p>
+          サーバーの
+          <code>.tobari/access-key.txt</code>
+          を開き、アクセスキーを入力してください。
+        </p>
+        <label
+          >アクセスキー<input
+            name="token"
+            type="password"
+            required
+            autocomplete="current-password"
+        /></label>
+        <p id="login-error" role="alert"></p>
+        <button class="primary" type="submit">接続する</button>
+      </form>
+    </dialog>
+    <dialog id="task-dialog" aria-labelledby="task-heading">
+      <form id="task-form">
+        <p class="eyebrow">A NEW MISSION</p>
+        <h2 id="task-heading">タスクを登録</h2>
+        <label
+          >タイトル<input
+            name="title"
+            required
+            maxlength="200"
+            placeholder="例：ログイン失敗の原因調査と修正"
+        /></label>
+        <label
+          >依頼内容<textarea
+            name="request"
+            rows="5"
+            maxlength="20000"
+            placeholder="依頼・制約・完了条件。詳細はCLIで相談できます。"
+          ></textarea>
+        </label>
+        <label
+          >CLIを動かすPC上の作業フォルダー<input
+            name="cwd"
+            required
+            maxlength="4096"
+            placeholder="C:\projects\my-app または /home/me/my-app"
+        /></label>
+        <label
+          >関連リンク（1行に1つ・任意）<textarea
+            name="links"
+            rows="2"
+            placeholder="https://github.com/owner/repo/issues/123"
+          ></textarea>
+        </label>
+        <p id="task-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="cancel-task">キャンセル</button
+          ><button class="primary" type="submit">
+            登録して起動コマンドを表示
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="launch-dialog" aria-labelledby="launch-heading">
+      <p class="eyebrow">CONNECT YOUR AGENT</p>
+      <h2 id="launch-heading">CLIで作業を開始</h2>
+      <p id="launch-task-title"></p>
+      <p>CLIを動かすPCでTobariをcloneし、そのフォルダーで初回のみ実行：</p>
+      <pre id="setup-command"></pre>
+      <p>
+        接続時のアクセスキーはサーバー側の
+        <code>.tobari/access-key.txt</code> から入力します。
+      </p>
+      <label
+        >エージェント<select id="launch-provider" aria-label="エージェント">
+          <option value="codex">Codex</option>
+          <option value="claude">Claude Code</option>
+        </select></label
+      >
+      <label
+        >コピーしてターミナルで実行<textarea
+          id="launch-command"
+          readonly
+          rows="3"
+        ></textarea>
+      </label>
+      <p>
+        Codexは初回に
+        <code>/hooks</code>
+        でTobariのhookを確認・信頼してください。ログインと実行許可はCLI側で行います。
+      </p>
+      <p id="copy-status" role="status"></p>
+      <div class="dialog-actions">
+        <button id="close-launch">閉じる</button
+        ><button id="copy-launch" class="primary">起動コマンドをコピー</button>
+      </div>
+    </dialog>
+  </body>
+</html>
