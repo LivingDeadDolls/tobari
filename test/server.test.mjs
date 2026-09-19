@@ -265,7 +265,7 @@ test('Windows bat keeps the server in the foreground and serves HTTP', {skip: pr
       const timer = setTimeout(() => reject(new Error('bat startup timeout: ' + output)), 20000);
       child.stdout.on('data', chunk => {
         output += chunk;
-        if (output.includes('Keep this window open')) { clearTimeout(timer); resolve(); }
+        if (output.includes('Ctrl+C to stop.')) { clearTimeout(timer); resolve(); }
       });
       child.once('error', error => { clearTimeout(timer); reject(error); });
       child.once('exit', code => { clearTimeout(timer); reject(new Error(`bat exited early (${code}): ${output}`)); });
