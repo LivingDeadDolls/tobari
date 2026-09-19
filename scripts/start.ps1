@@ -1,10 +1,13 @@
 param(
-  [ValidateSet('normal', 'dev')][string]$Mode = 'normal',
-  [Parameter(Mandatory = $true)][string]$Repository,
-  [Parameter(ValueFromRemainingArguments = $true)][string[]]$ServerArgs
+  [string]$Mode = 'normal',
+  [string]$Repository
 )
+# A simple script parameter block preserves CLI flags such as --db verbatim.
+# Advanced parameter binding would interpret --db as PowerShell's Debug switch.
+$ServerArgs = @($args)
 $ErrorActionPreference = 'Stop'
 try {
+  if ($Mode -notin @('normal', 'dev')) { throw 'Invalid startup mode.' }
   # Inspect the original UNC path before any drive mapping or Windows Node lookup.
   if ($Repository -match '^\\\\(?:wsl\.localhost|wsl\$)\\([^\\]+)(\\.*)?$') {
     $distribution = $Matches[1]
